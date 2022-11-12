@@ -45,3 +45,5 @@ app.*.map.json
 
 # Credentials
 lib/credentials
+android/app/google-services.json
+lib/utils/secrets.dart

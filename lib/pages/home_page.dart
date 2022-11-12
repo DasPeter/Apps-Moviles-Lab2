@@ -3,8 +3,11 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:avatar_glow/avatar_glow.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutterfire_ui/auth.dart';
 import 'package:lab2/pages/favorites_page.dart';
+import 'package:lab2/pages/login_page.dart';
 import 'package:lab2/pages/song_info.dart';
 import 'package:lab2/providers/song_data_provider.dart';
 import 'package:path_provider/path_provider.dart';
@@ -48,6 +51,8 @@ class _HomePageState extends State<HomePage> {
                   child: GestureDetector(
                     onTap: () {
                       SnackBar snackBar;
+                      Map<String, dynamic> songData;
+
                       doRecording().then((recordingPath) => {
                             // Call API to identify song
                             context
@@ -80,18 +85,17 @@ class _HomePageState extends State<HomePage> {
                                             }
                                           else
                                             {
-                                              // Song matched, send song data to SongInfoScreen
-                                              log("Song matched, sending to songInfo"),
+                                              songData = stripSongData(
+                                                  response["result"]),
                                               Navigator.of(context).push(
                                                 MaterialPageRoute(
                                                   builder: (context) =>
                                                       SongInfoScreen(
-                                                    songData:
-                                                        response["result"],
+                                                    songData: songData,
                                                     isFavorite: false,
                                                   ),
                                                 ),
-                                              )
+                                              ),
                                             }
                                         }
                                     })
@@ -104,8 +108,13 @@ class _HomePageState extends State<HomePage> {
                     ),
                   )),
             ),
-            FloatingActionButton(
-              backgroundColor: Colors.white,
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                shape: const CircleBorder(),
+                padding: const EdgeInsets.all(14),
+                backgroundColor: Colors.white, // <-- Button color
+                foregroundColor: Colors.red, // <-- Splash color
+              ),
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
@@ -118,11 +127,57 @@ class _HomePageState extends State<HomePage> {
                 Icons.favorite,
                 color: Colors.blueGrey[600],
               ),
-            )
+            ),
+            const SizedBox(
+              height: 20,
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                shape: const CircleBorder(),
+                padding: const EdgeInsets.all(14),
+                backgroundColor: Colors.white, // <-- Button color
+                foregroundColor: Colors.red, // <-- Splash color
+              ),
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                if (!mounted) return;
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const LoginPage(),
+                  ),
+                );
+              },
+              child: Icon(
+                size: 30,
+                Icons.logout,
+                color: Colors.blueGrey[600],
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  stripSongData(response) {
+    var allSongData = response;
+
+    // Song matched, send song data to SongInfoScreen
+    log("Song matched, sending to songInfo");
+    // Strip unnecessary data for Firebase collection
+    Map<String, dynamic> songData = {
+      "user": FirebaseAuth.instance.currentUser!.uid,
+      "title": allSongData["title"],
+      "artist": allSongData["artist"],
+      "album": allSongData["album"],
+      "release_date": allSongData["release_date"],
+      "image": allSongData["spotify"]["album"]["images"][0]["url"],
+      "spotify_link": allSongData["spotify"]["external_urls"]["spotify"],
+      "deezer_link": allSongData["deezer"]["link"],
+      "apple_link": allSongData["apple_music"]["url"],
+      "generic_link": allSongData["song_link"],
+    };
+    return songData;
   }
 
   Future<String> doRecording() async {

@@ -50,7 +50,7 @@ class SongInfoScreen extends StatelessWidget {
           child: Column(
             children: [
               Image.network(
-                  "${songData.containsKey("spotify") ? songData["spotify"]["album"]["images"][0]["url"] : placeholderAlbum}"),
+                  "${songData["image"] != "" ? songData["image"] : placeholderAlbum}"),
               Container(
                 padding: const EdgeInsets.only(top: 30, bottom: 30),
                 child: Column(
@@ -99,27 +99,27 @@ class SongInfoScreen extends StatelessWidget {
                         icon: const FaIcon(FontAwesomeIcons.spotify, size: 40),
                         padding: EdgeInsets.zero,
                         onPressed: () async {
-                          await launch(songData.containsKey("spotify")
-                              ? songData["spotify"]["external_urls"]["spotify"]
-                              : songData["song_link"]);
+                          await launch(songData["spotify_link"] != ""
+                              ? songData["spotify_link"]
+                              : songData["generic_link"]);
                         },
                       ),
                       IconButton(
                         icon: const FaIcon(FontAwesomeIcons.podcast, size: 40),
                         padding: EdgeInsets.zero,
                         onPressed: () async {
-                          await launch(songData.containsKey("deezer")
-                              ? songData["deezer"]["link"]
-                              : songData["song_link"]);
+                          await launch(songData["deezer_link"] != ""
+                              ? songData["deezer_link"]
+                              : songData["generic_link"]);
                         },
                       ),
                       IconButton(
                         icon: const FaIcon(FontAwesomeIcons.apple, size: 40),
                         padding: EdgeInsets.zero,
                         onPressed: () async {
-                          await launch(songData.containsKey("apple_music")
-                              ? songData["apple_music"]["url"]
-                              : songData["song_link"]);
+                          await launch(songData["apple_link"] != ""
+                              ? songData["apple_link"]
+                              : songData["generic_link"]);
                         },
                       ),
                     ],

@@ -5,7 +5,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import '../credentials/credentials.dart' as credentials;
+import '../utils/secrets.dart' as secrets;
 
 class SongDataProvider with ChangeNotifier {
   final List<dynamic> _favoritesList = [];
@@ -43,7 +43,7 @@ class SongDataProvider with ChangeNotifier {
       log("Attempting to send file to API");
       Uri url = Uri.parse("https://api.audd.io/");
       var response = await http.post(url, body: {
-        'api_token': credentials.apiKey,
+        'api_token': secrets.auddApiKey,
         'return': 'apple_music,spotify,deezer',
         'audio': fileBase64,
         'method': 'recognize',
@@ -53,6 +53,7 @@ class SongDataProvider with ChangeNotifier {
 
       // Handle response
       var res = jsonDecode(response.body);
+      // log(res.toString());
       if (res["status"] == "success") {
         return res;
       } else if (res["status"] == "error") {
