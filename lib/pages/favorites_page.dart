@@ -1,7 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutterfire_ui/firestore.dart';
 import 'package:lab2/items/favorite.dart';
-import 'package:lab2/providers/song_data_provider.dart';
-import 'package:provider/provider.dart';
 
 class FavoritesScreen extends StatelessWidget {
   const FavoritesScreen({super.key});
@@ -13,17 +14,19 @@ class FavoritesScreen extends StatelessWidget {
         title: const Text('Favorites'),
       ),
       body: Container(
-        padding: const EdgeInsets.all(15),
-        child: ListView.builder(
-          itemCount: context.watch<SongDataProvider>().getFavoritesList.length,
-          itemBuilder: (BuildContext context, int index) {
-            return Favorite(
-              songData:
-                  context.read<SongDataProvider>().getFavoritesList[index],
-            );
-          },
-        ),
-      ),
+          padding: const EdgeInsets.all(15),
+          child: FirestoreQueryBuilder(
+              query: FirebaseFirestore.instance
+                  .collection("song_favorites")
+                  .where("user",
+                      isEqualTo: FirebaseAuth.instance.currentUser!.uid),
+              builder: ((context, snapshot, child) {
+                return ListView.builder(
+                    itemCount: snapshot.docs.length,
+                    itemBuilder: ((context, index) {
+                      return Favorite(songData: snapshot.docs[index].data());
+                    }));
+              }))),
     );
   }
 }

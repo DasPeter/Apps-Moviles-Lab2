@@ -1,15 +1,11 @@
-import 'dart:async';
-import 'dart:developer';
-import 'dart:io';
-
 import 'package:avatar_glow/avatar_glow.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:lab2/pages/favorites_page.dart';
+import 'package:lab2/pages/login_page.dart';
 import 'package:lab2/pages/song_info.dart';
 import 'package:lab2/providers/song_data_provider.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:record/record.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -22,6 +18,8 @@ class _HomePageState extends State<HomePage> {
   bool animateGlow = false;
   String statusMsg = "Toque para escuchar";
   String imageToShow = "assets/images/waves5.jpg";
+
+  late SnackBar snackBar;
 
   @override
   Widget build(BuildContext context) {
@@ -46,56 +44,42 @@ class _HomePageState extends State<HomePage> {
                   endRadius: 200,
                   animate: animateGlow,
                   child: GestureDetector(
-                    onTap: () {
-                      SnackBar snackBar;
-                      doRecording().then((recordingPath) => {
-                            // Call API to identify song
-                            context
-                                .read<SongDataProvider>()
-                                .identifySong(recordingPath)
-                                .then((response) => {
-                                      if (response == null)
-                                        {
-                                          // Show snackbar if API couldn't be fetched
-                                          log("API failed"),
-                                          snackBar = const SnackBar(
-                                            content: Text(
-                                                "Lo sentimos, hubo un error. Intenta de nuevo."),
-                                          ),
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(snackBar)
-                                        }
-                                      else
-                                        {
-                                          if (response["result"] == null)
-                                            {
-                                              // Show snackbar if no song matched
-                                              log("No song matched"),
-                                              snackBar = const SnackBar(
-                                                content: Text(
-                                                    "Lo sentimos, no encontramos esa canción.\nPuedes intentar de nuevo."),
-                                              ),
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(snackBar)
-                                            }
-                                          else
-                                            {
-                                              // Song matched, send song data to SongInfoScreen
-                                              log("Song matched, sending to songInfo"),
-                                              Navigator.of(context).push(
-                                                MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      SongInfoScreen(
-                                                    songData:
-                                                        response["result"],
-                                                    isFavorite: false,
-                                                  ),
-                                                ),
-                                              )
-                                            }
-                                        }
-                                    })
-                          });
+                    onTap: () async {
+                      Map<String, dynamic> songData;
+
+                      uiStartScan();
+                      // Do recording and get path to file
+                      var recordingPath =
+                          await context.read<SongDataProvider>().doRecording();
+                      uiStopScan();
+
+                      // Call API to identify song
+                      if (!mounted) return;
+                      var response = await context
+                          .read<SongDataProvider>()
+                          .identifySong(recordingPath);
+
+                      if (!mounted) return;
+                      if (response == null) {
+                        // Show snackbar if API couldn't be fetched
+                        showApiErrorSnackbar(context);
+                      } else if (response["result"] == null) {
+                        // Show snackbar if no song matched
+                        showNoMatchSnackbar(context);
+                      } else {
+                        // Song matched. Go to song info page
+                        songData = context
+                            .read<SongDataProvider>()
+                            .stripSongData(response["result"]);
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => SongInfoScreen(
+                              songData: songData,
+                              isFavorite: false,
+                            ),
+                          ),
+                        );
+                      }
                     },
                     child: CircleAvatar(
                       radius: 100,
@@ -104,8 +88,13 @@ class _HomePageState extends State<HomePage> {
                     ),
                   )),
             ),
-            FloatingActionButton(
-              backgroundColor: Colors.white,
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                shape: const CircleBorder(),
+                padding: const EdgeInsets.all(14),
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.red,
+              ),
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
@@ -118,50 +107,68 @@ class _HomePageState extends State<HomePage> {
                 Icons.favorite,
                 color: Colors.blueGrey[600],
               ),
-            )
+            ),
+            const SizedBox(
+              height: 20,
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                shape: const CircleBorder(),
+                padding: const EdgeInsets.all(14),
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.red,
+              ),
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                if (!mounted) return;
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => const LoginPage(),
+                  ),
+                );
+              },
+              child: Icon(
+                size: 30,
+                Icons.logout,
+                color: Colors.blueGrey[600],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Future<String> doRecording() async {
-    log("Tapped big button");
-
+  uiStartScan() {
     // Update UI variables
     animateGlow = true;
     statusMsg = "Escuchando...";
     imageToShow = "assets/images/waves5.gif";
     setState(() {});
+  }
 
-    // Get temp folder route
-    Directory appTempDir = await getTemporaryDirectory();
-    log(appTempDir.path);
-
-    // Record audio
-    final myRecorder = Record();
-    String? pathToRecording = "";
-
-    // Check for recording permission
-    if (await myRecorder.hasPermission()) {
-      // Start recording
-      myRecorder.start(path: "${appTempDir.path}/song_to_identify.m4a");
-      log("Started recording");
-    }
-
-    // Wait 4 seconds to stop recording
-    await Future.delayed(const Duration(seconds: 4));
-    pathToRecording = await myRecorder.stop();
-    log("Stopped recording");
-    log("pathToRecording:");
-    log(pathToRecording!);
-
+  uiStopScan() {
     // Update UI variables
     animateGlow = false;
     statusMsg = "Toque para escuchar";
     imageToShow = "assets/images/waves5.jpg";
     setState(() {});
+  }
 
-    return pathToRecording;
+  void showApiErrorSnackbar(context) {
+    snackBar = const SnackBar(
+      content: Text("Lo sentimos, hubo un error. Intenta de nuevo."),
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
+  void showNoMatchSnackbar(BuildContext context) {
+    snackBar = const SnackBar(
+      content: Text(
+          "Lo sentimos, no encontramos esa canción.\nPuedes intentar de nuevo."),
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 }

@@ -21,6 +21,18 @@ dependencies:
   record: ^4.4.3
   path_provider: ^2.0.11
   url_launcher: ^6.1.6
+  firebase_core:
+  firebase_auth:
+  flutterfire_ui:
+  cloud_firestore:
+
+flutter_icons:
+  image_path_android: "assets/images/waves5.jpg"
+  android: true
+  # (flutter_launcher_icons) To update app icons use:
+  # flutter pub get
+  # flutter pub run flutter_launcher_icons:main
+
 
 dev_dependencies:
   flutter_test:
@@ -31,3 +43,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/

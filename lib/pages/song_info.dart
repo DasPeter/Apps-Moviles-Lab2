@@ -1,6 +1,4 @@
-// ignore_for_file: deprecated_member_use
-
-import 'dart:developer';
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -10,13 +8,15 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/song_data_provider.dart';
 
+// ignore: must_be_immutable
 class SongInfoScreen extends StatelessWidget {
   final dynamic songData;
   bool isFavorite;
-  String placeholderAlbum =
-      "https://image.radioking.io/radios/460007/cover/custom/a2daa88f-05b2-408c-a554-57701ad526dc.png";
 
   SongInfoScreen({super.key, required this.songData, required this.isFavorite});
+
+  String placeholderAlbum =
+      "https://image.radioking.io/radios/460007/cover/custom/a2daa88f-05b2-408c-a554-57701ad526dc.png";
 
   @override
   Widget build(BuildContext context) {
@@ -28,16 +28,7 @@ class SongInfoScreen extends StatelessWidget {
             padding: const EdgeInsets.only(right: 20.0),
             child: GestureDetector(
               onTap: (() {
-                if (!isFavorite) {
-                  context.read<SongDataProvider>().addFavorite(songData);
-                  isFavorite = true;
-                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text("¡Canción agregada a favoritos!"),
-                  ));
-                } else {
-                  showRemoveFavoriteWarning(context);
-                }
+                toggleFavorite(context, songData);
               }),
               child: const Icon(Icons.favorite),
             ),
@@ -50,7 +41,7 @@ class SongInfoScreen extends StatelessWidget {
           child: Column(
             children: [
               Image.network(
-                  "${songData.containsKey("spotify") ? songData["spotify"]["album"]["images"][0]["url"] : placeholderAlbum}"),
+                  "${songData["image"] != "" ? songData["image"] : placeholderAlbum}"),
               Container(
                 padding: const EdgeInsets.only(top: 30, bottom: 30),
                 child: Column(
@@ -99,27 +90,27 @@ class SongInfoScreen extends StatelessWidget {
                         icon: const FaIcon(FontAwesomeIcons.spotify, size: 40),
                         padding: EdgeInsets.zero,
                         onPressed: () async {
-                          await launch(songData.containsKey("spotify")
-                              ? songData["spotify"]["external_urls"]["spotify"]
-                              : songData["song_link"]);
+                          await launch(songData["spotify_link"] != ""
+                              ? songData["spotify_link"]
+                              : songData["generic_link"]);
                         },
                       ),
                       IconButton(
                         icon: const FaIcon(FontAwesomeIcons.podcast, size: 40),
                         padding: EdgeInsets.zero,
                         onPressed: () async {
-                          await launch(songData.containsKey("deezer")
-                              ? songData["deezer"]["link"]
-                              : songData["song_link"]);
+                          await launch(songData["deezer_link"] != ""
+                              ? songData["deezer_link"]
+                              : songData["generic_link"]);
                         },
                       ),
                       IconButton(
                         icon: const FaIcon(FontAwesomeIcons.apple, size: 40),
                         padding: EdgeInsets.zero,
                         onPressed: () async {
-                          await launch(songData.containsKey("apple_music")
-                              ? songData["apple_music"]["url"]
-                              : songData["song_link"]);
+                          await launch(songData["apple_link"] != ""
+                              ? songData["apple_link"]
+                              : songData["generic_link"]);
                         },
                       ),
                     ],
@@ -133,7 +124,24 @@ class SongInfoScreen extends StatelessWidget {
     );
   }
 
-  void showRemoveFavoriteWarning(BuildContext context) {
+  Future<void> toggleFavorite(BuildContext context, dynamic songData) async {
+    bool songIsFavorite =
+        await context.read<SongDataProvider>().isSongFavorite(songData);
+
+    if (songIsFavorite == true) {
+      showRemoveFavoriteWarning(context, songData);
+    } else {
+      // Add favorite to firebase
+      context.read<SongDataProvider>().addFavorite(songData);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(
+          content: Text("¡Canción agregada a favoritos!"),
+        ));
+    }
+  }
+
+  void showRemoveFavoriteWarning(BuildContext context, songData) {
     showDialog(
         context: context,
         builder: (context) => AlertDialog(
@@ -143,21 +151,18 @@ class SongInfoScreen extends StatelessWidget {
               actions: [
                 TextButton(
                     onPressed: () {
-                      log("Clicked cancel");
                       Navigator.pop(context);
                     },
                     child: const Text("Cancelar")),
                 TextButton(
                     onPressed: () {
-                      log("Clicked remove favorite");
                       Navigator.pop(context);
-                      context.read<SongDataProvider>().removeFavorite();
-                      isFavorite = false;
-                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text("Canción eliminada de favoritos."),
-                      ));
-                      log("Removed favorite");
+                      context.read<SongDataProvider>().removeFavorite(songData);
+                      ScaffoldMessenger.of(context)
+                        ..hideCurrentSnackBar()
+                        ..showSnackBar(const SnackBar(
+                          content: Text("Canción eliminada de favoritos."),
+                        ));
                     },
                     child: const Text("Eliminar")),
               ],

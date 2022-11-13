@@ -28,7 +28,7 @@ class Favorite extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(15),
               child: Image.network(
-                  "${songData.containsKey("spotify") ? songData["spotify"]["album"]["images"][0]["url"] : placeholderAlbum}"),
+                  "${songData["image"] != "" ? songData["image"] : placeholderAlbum}"),
             ),
             const Positioned(
               top: 10,
