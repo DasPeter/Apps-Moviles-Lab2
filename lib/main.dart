@@ -23,7 +23,6 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'FindTrackApp',
       theme: ThemeData.dark(),
-      // home: const HomePage(),
       home: FirebaseAuth.instance.currentUser == null
           ? const LoginPage()
           : const HomePage(),

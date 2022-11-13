@@ -3,8 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutterfire_ui/firestore.dart';
 import 'package:lab2/items/favorite.dart';
-import 'package:lab2/providers/song_data_provider.dart';
-import 'package:provider/provider.dart';
 
 class FavoritesScreen extends StatelessWidget {
   const FavoritesScreen({super.key});

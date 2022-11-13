@@ -19,7 +19,7 @@ class LoginPage extends StatelessWidget {
       },
       providerConfigs: const [
         EmailProviderConfiguration(),
-        GoogleProviderConfiguration(clientId: GOOGLE_CLIENT_ID),
+        GoogleProviderConfiguration(clientId: googleClientId),
       ],
       footerBuilder: (context, action) {
         return const Center(
